@@ -1,133 +1,99 @@
 <!DOCTYPE html>
-<html lang="vi">
+<html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Phần mềm Quản lý Cửa hàng Tiện lợi</title>
-    <style>
-        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f4f6f9; margin: 0; padding: 20px; display: flex; justify-content: center; }
-        .container { background: white; padding: 30px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); width: 100%; max-width: 500px; }
-        h2 { text-align: center; color: #333; margin-top: 0; border-bottom: 2px solid #007bff; padding-bottom: 10px; }
-        label { font-weight: bold; display: block; margin-top: 15px; margin-bottom: 5px; color: #555; }
-        input[type="text"], input[type="number"] { width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 6px; box-sizing: border-box; font-size: 16px; }
-        button { width: 100%; background-color: #007bff; color: white; border: none; padding: 12px; border-radius: 6px; font-size: 16px; font-weight: bold; cursor: pointer; margin-top: 20px; transition: 0.2s; }
-        button:hover { background-color: #0056b3; }
-        .log-box { background-color: #1e1e1e; color: #75be00; padding: 15px; border-radius: 6px; font-family: 'Courier New', Courier, monospace; margin-top: 20px; min-height: 15px; white-space: pre-line; box-shadow: inset 0 0 10px rgba(0,0,0,0.5); }
-    </style>
+    <title>代理钱包管理系统</title>
+    <!-- Thư viện giao diện bên ngoài -->
+    <link href="https://jsdelivr.net" rel="stylesheet">
+    <link href="https://unpkg.com" rel="stylesheet">
+    <!-- File CSS riêng của bạn -->
+    <link rel="stylesheet" href="style.css">
 </head>
 <body>
 
-<div class="container">
-    <h2>🏪 CỬA HÀNG TIỆN LỢI OS</h2>
-    
-    <div id="step1">
-        <label>Tên nhân viên thu ngân:</label>
-        <input type="text" id="tenNhanVien" placeholder="Nhập tên của bạn...">
-        <label>Số lượng món đồ khách mua:</label>
-        <input type="number" id="soLuongMuan" placeholder="Ví dụ: 3">
-        <button onclick="batDauNhapGia()">Bắt đầu nhập giá tiền</button>
-    </div>
+<div class="container-fluid">
+    <div class="system-box">
+        <h2 class="text-primary mb-4">📊 代理钱包管理系统</h2>
 
-    <div id="step2" style="display:none;">
-        <div id="danhSachMonDo"></div>
-        <button onclick="tinhToanHoaDon()">Tính tổng tiền & Giảm giá</button>
-    </div>
+        <!-- TABS CHUYỂN MỤC NHỎ -->
+        <ul class="nav nav-tabs mb-3" id="walletTabs">
+            <li class="nav-item"><a class="nav-link active" href="#" onclick="switchWallet('HRPAY-BK')">HRPAY-BK</a></li>
+            <li class="nav-item"><a class="nav-link" href="#" onclick="switchWallet('HRPAY-NA')">HRPAY-NA</a></li>
+            <li class="nav-item"><a class="nav-link" href="#" onclick="switchWallet('BDPAY-BK')">BDPAY-BK</a></li>
+            <li class="nav-item"><a class="nav-link" href="#" onclick="switchWallet('BDPAY-NA')">BDPAY-NA</a></li>
+        </ul>
 
-    <div id="step3" style="display:none;">
-        <div class="log-box" id="ketQuaHoaDon"></div>
-        <label style="margin-top: 20px;">Số tiền khách đưa cho bạn:</label>
-        <input type="number" id="tienKhachDua" placeholder="Nhập số tiền...">
-        <button onclick="thanhToanYeuCau()">Xác nhận thanh toán</button>
-    </div>
+        <!-- THANH CÔNG CỤ -->
+        <div class="row g-3 mb-3 align-items-center">
+            <div class="col-md-3">
+                <input type="text" id="global-search" class="form-control" placeholder="🔍 批量搜索 (Tìm kiếm hàng loạt)...">
+            </div>
+            <div class="col-md-2">
+                <button class="btn btn-warning w-100" onclick="toggleGroupByKam商()">🔄 按卡商分组</button>
+            </div>
+            <div class="col-md-2">
+                <button class="btn btn-danger w-100" onclick="prepareDeleteRows()">🗑️ 批量删除</button>
+            </div>
+            <div class="col-md-3">
+                <button class="btn btn-success w-100" data-bs-toggle="modal" data-bs-target="#addModal">➕ 批量添加数据</button>
+            </div>
+            <div class="col-md-2 text-end">
+                <span id="total-records" class="badge bg-secondary p-2">加载中...</span>
+            </div>
+        </div>
 
-    <div class="log-box" id="manHinhChinh" style="margin-top:20px; display:none;"></div>
+        <!-- BẢNG HIỂN THỊ DỮ LIỆU -->
+        <div id="main-table"></div>
+    </div>
 </div>
 
-<script>
-    let tenThuNgan = "";
-    let soLuong = 0;
-    let tongTien = 0;
-    let tienPhaiTra = 0;
-    const donVi = "VND";
+<!-- CỬA SỔ 1: THÊM DỮ LIỆU HÀNG LOẠT -->
+<div class="modal fade" id="addModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">📥 批量数据录入</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p class="text-muted">格式: <b>卡商,卡号,微信号/钱包,跑量,密码,备注,状态</b> (每行一条)</p>
+                <textarea id="bulk-input-area" class="form-control" rows="8" placeholder="卡商A,6222021234567,HRPAY1,50000,pwd123,正常,激活"></textarea>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-primary" onclick="submitBulkData()">🚀 提交到系统</button>
+            </div>
+        </div>
+    </div>
+</div>
 
-    function batDauNhapGia() {
-        tenThuNgan = document.getElementById("tenNhanVien").value || "Thu ngân";
-        soLuong = parseInt(document.getElementById("soLuongMuan").value);
-        
-        if (isNaN(soLuong) || soLuong <= 0) {
-            alert("Vui lòng nhập số lượng món đồ hợp lệ lớn hơn 0!");
-            return;
-        }
+<!-- CỬA SỔ 2: XÁC NHẬN XÓA & COPY -->
+<div class="modal fade" id="deleteConfirmModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header bg-danger text-white">
+                <h5 class="modal-title">⚠️ 确认删除数据</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p class="text-danger fw-bold">请检查并复制以下即将被删除的数据列表：</p>
+                <textarea id="delete-list-area" class="form-control mb-3" rows="8" readonly></textarea>
+                <div class="d-flex justify-content-between">
+                    <button class="btn btn-sm btn-secondary" onclick="copyDeleteList()">📋 复制到剪贴板</button>
+                    <span id="copy-status" class="text-success fw-bold"></span>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">取消</button>
+                <button type="button" class="btn btn-danger" id="btn-confirm-delete-action" onclick="executeDeleteRows()">🔥 确认删除</button>
+            </div>
+        </div>
+    </div>
+</div>
 
-        let htmlInputs = "";
-        // Vòng lặp FOR tương tự trong Python để tạo ra số lượng ô nhập giá tiền
-        for (let i = 0; i < soLuong; i++) {
-            htmlInputs += `<label>Giá tiền món đồ thứ ${i + 1} (${donVi}):</label>
-                           <input type="number" class="gia-item" placeholder="Nhập giá tiền...">`;
-        }
-        
-        document.getElementById("danhSachMonDo").innerHTML = htmlInputs;
-        document.getElementById("step1").style.display = "none";
-        document.getElementById("step2").style.display = "block";
-    }
-
-    function tinhToanHoaDon() {
-        let inputs = document.getElementsByClassName("gia-item");
-        tongTien = 0;
-
-        // Vòng lặp FOR cộng dồn tổng tiền
-        for (let i = 0; i < inputs.length; i++) {
-            let gia = parseInt(inputs[i].value) || 0;
-            tongTien += gia;
-        }
-
-        let giamGia = 0;
-        // Câu lệnh IF - ELSE lọc giảm giá y hệt Python bạn vừa viết
-        if (tongTien >= 100000) {
-            giamGia = 20000;
-        } else if (tongTien >= 50000) {
-            giamGia = 10000;
-        } else {
-            giamGia = 0;
-        }
-
-        tienPhaiTra = tongTien - giamGia;
-
-        let logIn = `Tổng tiền gốc: ${tongTien} ${donVi}\n`;
-        if (giamGia > 0) {
-            logIn += `Khách được giảm giá: -${giamGia} ${donVi}\n`;
-        } else {
-            logIn += `Không được giảm giá.\n`;
-        }
-        logIn += `👉 SỐ TIỀN KHÁCH PHẢI TRẢ LÀ: ${tienPhaiTra} ${donVi}`;
-
-        document.getElementById("ketQuaHoaDon").innerText = logIn;
-        document.getElementById("step2").style.display = "none";
-        document.getElementById("step3").style.display = "block";
-    }
-
-    function thanhToanYeuCau() {
-        let khachDua = parseInt(document.getElementById("tienKhachDua").value) || 0;
-        let manHinh = document.getElementById("manHinhChinh");
-        manHinh.style.display = "block";
-
-        // Logic WHILE kiểm tra tiền thiếu
-        if (khachDua < tienPhaiTra) {
-            manHinh.innerText = "🚨 Máy tính báo: Thiếu tiền rồi! Vui lòng bảo khách đưa thêm tiền.";
-            manHinh.style.color = "#ff4d4d";
-        } else {
-            // Khi khách đưa đủ hoặc thừa tiền (Thoát điều kiện thiếu)
-            let tienThua = khachDua - tienPhaiTra;
-            manHinh.style.color = "#75be00";
-            manHinh.innerText = `✅ THANH TOÁN THÀNH CÔNG!\n\n` +
-                                `Tiền thừa trả lại khách là: ${tienThua} ${donVi}\n` +
-                                `Thu ngân [${tenThuNgan}] thông báo: Cảm ơn quý khách đã ủng hộ quán em!`;
-            
-            // Ẩn ô nhập tiền sau khi hoàn thành
-            document.getElementById("step3").getElementsByTagName("button")[0].disabled = true;
-        }
-    }
-</script>
-
+<!-- Gọi thư viện và file xử lý logic Javascript -->
+<script src="https://unpkg.com"></script>
+<script src="https://jsdelivr.net"></script>
+<script src="app.js"></script>
 </body>
 </html>
