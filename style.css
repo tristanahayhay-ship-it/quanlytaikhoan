@@ -3,26 +3,23 @@ body {
     padding: 20px; 
     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
 }
-.nav-tabs .nav-link { 
-    font-weight: bold; 
-    color: #495057; 
-}
-.nav-tabs .nav-link.active { 
-    color: #0d6efd; 
-    border-bottom: 3px solid #0d6efd; 
-}
-.system-box { 
-    background: white; 
-    padding: 20px; 
-    border-radius: 10px; 
-    box-shadow: 0 4px 12px rgba(0,0,0,0.05); 
-}
-.duplicate-alert { 
-    background-color: #ffcccc !important; 
-    color: #cc0000 !important; 
-    font-weight: bold; 
-}
-#delete-list-area {
-    background-color: #f8f9fa; 
-    font-family: monospace;
-}
+.nav-tabs .nav-link { font-weight: bold; color: #495057; }
+.nav-tabs .nav-link.active { color: #0d6efd; border-bottom: 3px solid #0d6efd; }
+.system-box { background: white; padding: 20px; border-radius: 10px; box-shadow: 0 4px 12px rgba(0,0,0,0.05); }
+
+/* Báo đỏ khi phát hiện số thẻ (卡号) trùng lặp */
+.duplicate-alert { background-color: #ffcccc !important; color: #cc0000 !important; font-weight: bold; }
+#delete-list-area { background-color: #f8f9fa; font-family: monospace; }
+
+/* 🎨 ĐỊNH DẠNG MÀU SẮC TIÊU ĐỀ THEO HÌNH EXCEL */
+.tabulator-col[tabulator-field="kaShang"] { background-color: #fce4d6 !important; color: black !important; text-align: center; }
+.tabulator-col[tabulator-field="kaHao"] { background-color: #c6e0b4 !important; color: black !important; text-align: center; }
+.tabulator-col[tabulator-field="viDaiLy"] { background-color: #ffd966 !important; color: black !important; text-align: center; }
+.tabulator-col[tabulator-field="paoLiang"] { background-color: #f4b084 !important; color: black !important; text-align: center; }
+.tabulator-col[tabulator-field="miMa"] { background-color: #c6e0b4 !important; color: black !important; text-align: center; }
+.tabulator-col[tabulator-field="beiZhu"] { background-color: #b4c6e7 !important; color: black !important; text-align: center; }
+.tabulator-col[tabulator-field="zhuangTai"] { background-color: #fff2cc !important; color: black !important; text-align: center; }
+.tabulator-col[tabulator-field="action_col"] { background-color: #e2efda !important; color: black !important; text-align: center; }
+
+/* Căn giữa chữ trong các ô dữ liệu cho dễ nhìn giống Excel */
+.tabulator-cell { text-align: center; font-size: 14px; border-right: 1px solid #dee2e6 !important; }
