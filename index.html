@@ -1,99 +1,166 @@
 <!DOCTYPE html>
-<html lang="zh-CN">
+<html lang="zh">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>代理钱包管理系统</title>
-    <!-- Thư viện giao diện bên ngoài -->
-    <link href="https://jsdelivr.net" rel="stylesheet">
-    <link href="https://unpkg.com" rel="stylesheet">
-    <!-- File CSS riêng của bạn -->
+    <title>HRPAY-代理钱包</title>
+    <!-- Thư viện biểu tượng FontAwesome -->
+    <link rel="stylesheet" href="https://cloudflare.com">
+    <!-- Liên kết tới file CSS riêng -->
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
 
-<div class="container-fluid">
-    <div class="system-box">
-        <h2 class="text-primary mb-4">📊 代理钱包管理系统</h2>
-
-        <!-- TABS CHUYỂN MỤC NHỎ -->
-        <ul class="nav nav-tabs mb-3" id="walletTabs">
-            <li class="nav-item"><a class="nav-link active" href="#" onclick="switchWallet('HRPAY-BK')">HRPAY-BK</a></li>
-            <li class="nav-item"><a class="nav-link" href="#" onclick="switchWallet('HRPAY-NA')">HRPAY-NA</a></li>
-            <li class="nav-item"><a class="nav-link" href="#" onclick="switchWallet('BDPAY-BK')">BDPAY-BK</a></li>
-            <li class="nav-item"><a class="nav-link" href="#" onclick="switchWallet('BDPAY-NA')">BDPAY-NA</a></li>
-        </ul>
-
-        <!-- THANH CÔNG CỤ -->
-        <div class="row g-3 mb-3 align-items-center">
-            <div class="col-md-3">
-                <input type="text" id="global-search" class="form-control" placeholder="🔍 批量搜索 (Tìm kiếm hàng loạt)...">
-            </div>
-            <div class="col-md-2">
-                <button class="btn btn-warning w-100" onclick="toggleGroupByKam商()">🔄 按卡商分组</button>
-            </div>
-            <div class="col-md-2">
-                <button class="btn btn-danger w-100" onclick="prepareDeleteRows()">🗑️ 批量删除</button>
-            </div>
-            <div class="col-md-3">
-                <button class="btn btn-success w-100" data-bs-toggle="modal" data-bs-target="#addModal">➕ 批量添加数据</button>
-            </div>
-            <div class="col-md-2 text-end">
-                <span id="total-records" class="badge bg-secondary p-2">加载中...</span>
-            </div>
-        </div>
-
-        <!-- BẢNG HIỂN THỊ DỮ LIỆU -->
-        <div id="main-table"></div>
-    </div>
-</div>
-
-<!-- CỬA SỔ 1: THÊM DỮ LIỆU HÀNG LOẠT -->
-<div class="modal fade" id="addModal" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog modal-lg">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title">📥 批量数据录入</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-            </div>
-            <div class="modal-body">
-                <p class="text-muted">格式: <b>卡商,卡号,微信号/钱包,跑量,密码,备注,状态</b> (每行一条)</p>
-                <textarea id="bulk-input-area" class="form-control" rows="8" placeholder="卡商A,6222021234567,HRPAY1,50000,pwd123,正常,激活"></textarea>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-primary" onclick="submitBulkData()">🚀 提交到系统</button>
-            </div>
+    <!-- Khối nút chức năng Thêm mới phía trên cùng bên trái -->
+    <div class="top-actions">
+        <button class="btn" onclick="openModal('addSingleModal')"><i class="fa-solid fa-plus"></i> 新增账户</button>
+        <button class="btn" onclick="openModal('addBatchModal')"><i class="fa-solid fa-list-check"></i> 批量新增账户</button>
+        
+        <!-- Khối chứa các nút hành động hàng loạt (Chỉ hiện khi có tích chọn Checkbox) -->
+        <div class="batch-ops" id="batchOpsArea">
+            <span class="selected-count" id="selectedCountText">已选取 0 个项目</span>
+            <button class="btn btn-green" onclick="openModal('batchNoteModal')"><i class="fa-solid fa-pen"></i> 批量备注</button>
+            <button class="btn btn-red" onclick="executeBatchDelete()"><i class="fa-solid fa-trash"></i> 批量删除</button>
         </div>
     </div>
-</div>
 
-<!-- CỬA SỔ 2: XÁC NHẬN XÓA & COPY -->
-<div class="modal fade" id="deleteConfirmModal" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog modal-lg">
-        <div class="modal-content">
-            <div class="modal-header bg-danger text-white">
-                <h5 class="modal-title">⚠️ 确认删除数据</h5>
-                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
-            </div>
-            <div class="modal-body">
-                <p class="text-danger fw-bold">请检查并复制以下即将被删除的数据列表：</p>
-                <textarea id="delete-list-area" class="form-control mb-3" rows="8" readonly></textarea>
-                <div class="d-flex justify-content-between">
-                    <button class="btn btn-sm btn-secondary" onclick="copyDeleteList()">📋 复制到剪贴板</button>
-                    <span id="copy-status" class="text-success fw-bold"></span>
+    <div class="container">
+        <!-- Thanh tiêu đề chính -->
+        <div class="header">
+            <div class="title">HRPAY-代理钱包</div>
+            <div class="header-tools">
+                <i class="fa-solid fa-list-check" id="btnBatchSearch" title="批量搜索账号" onclick="toggleSearchPanel('batch')"></i>
+                <i class="fa-solid fa-magnifying-glass" id="btnSingleSearch" title="搜索" onclick="toggleSearchPanel('single')"></i>
+                <i class="fa-solid fa-arrow-down-wide-short" id="btnGroupSearch" title="按组搜索" onclick="toggleSearchPanel('group')"></i>
+                <i class="fa-solid fa-filter" id="btnColumns" title="筛选列" onclick="toggleColumnsDropdown()"></i>
+                
+                <!-- Menu thả xuống chọn Ẩn/Hiện cột -->
+                <div class="dropdown-menu" id="columnsDropdown">
+                    <label><input type="checkbox" checked data-col="1" onchange="syncColumns()"> 卡商</label>
+                    <label><input type="checkbox" checked data-col="2" onchange="syncColumns()"> 卡号</label>
+                    <label><input type="checkbox" checked data-col="3" onchange="syncColumns()"> HRPAY-BK (代理钱包)</label>
+                    <label><input type="checkbox" checked data-col="4" onchange="syncColumns()"> 跑量</label>
+                    <label><input type="checkbox" checked data-col="5" onchange="syncColumns()"> 密码</label>
+                    <label><input type="checkbox" checked data-col="6" onchange="syncColumns()"> 备注</label>
+                    <label><input type="checkbox" checked data-col="7" onchange="syncColumns()"> 状态</label>
                 </div>
             </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">取消</button>
-                <button type="button" class="btn btn-danger" id="btn-confirm-delete-action" onclick="executeDeleteRows()">🔥 确认删除</button>
+        </div>
+
+        <!-- Khối Tag chứa bộ lọc đang hoạt động -->
+        <div class="tags-area" id="tagsArea"></div>
+
+        <!-- Khối mở rộng: Nhập tìm kiếm hàng loạt Số tài khoản (Nút 1) -->
+        <div class="panel-extended" id="panelBatchSearch">
+            <label>输入 nhiều tài khoản (Mỗi hàng 1 số):</label>
+            <textarea id="batchSearchInput" placeholder="01641016686&#10;01791900141"></textarea>
+            <div class="panel-actions">
+                <button class="btn btn-gray" onclick="closeAllPanels()">取消</button>
+                <button class="btn" onclick="submitBatchSearch()">搜索</button>
+            </div>
+        </div>
+
+        <!-- Khối mở rộng: Nhập tìm kiếm đơn lẻ Số tài khoản (Nút 2) -->
+        <div class="panel-extended" id="panelSingleSearch">
+            <label>输入 một tài khoản để tra cứu:</label>
+            <input type="text" id="singleSearchInput" placeholder="输入卡号...">
+            <div class="panel-actions">
+                <button class="btn btn-gray" onclick="closeAllPanels()">取消</button>
+                <button class="btn" onclick="submitSingleSearch()">搜索</button>
+            </div>
+        </div>
+
+        <!-- Khối mở rộng: Tìm kiếm hàng loạt theo Tên nhóm dựa vào Ghi chú (Nút 3) -->
+        <div class="panel-extended" id="panelGroupSearch">
+            <label>输入 tên nhóm để tìm toàn bộ thẻ (Ví dụ: GR084):</label>
+            <input type="text" id="groupSearchInput" placeholder="输入组名...">
+            <div class="panel-actions">
+                <button class="btn btn-gray" onclick="closeAllPanels()">取消</button>
+                <button class="btn" onclick="submitGroupSearch()">搜索</button>
+            </div>
+        </div>
+
+        <!-- Thanh tìm kiếm nhanh mặc định -->
+        <div class="search-area">
+            <div class="search-box">
+                <div class="search-icon-wrapper">
+                    <i class="fa-solid fa-magnifying-glass"></i>
+                </div>
+                <input type="text" id="quickSearchInput" placeholder="快速查找..." oninput="applyFilters()">
+            </div>
+        </div>
+
+        <!-- Bảng danh sách dữ liệu chính -->
+        <table class="data-table" id="mainTable">
+            <thead>
+                <tr>
+                    <th style="width: 5%;"><input type="checkbox" id="selectAllCheckbox" onchange="toggleSelectAll()"></th>
+                    <th style="width: 10%;">卡商</th>
+                    <th style="width: 20%;">卡号</th>
+                    <th style="width: 25%;">HRPAY-BK (代理钱包)</th>
+                    <th style="width: 10%;">跑量</th>
+                    <th style="width: 10%;">密码</th>
+                    <th style="width: 10%;">备注</th>
+                    <th style="width: 10%;">状态</th>
+                </div>
+            </thead>
+            <tbody id="tableBody">
+                <!-- Dữ liệu nạp từ file JavaScript -->
+            </tbody>
+        </table>
+    </div>
+
+    <!-- ================= CỬA SỔ POPUP (MODAL) ================= -->
+    
+    <!-- Popup 1: Thêm/Sửa tài khoản đơn lẻ -->
+    <div class="modal-overlay" id="addSingleModal">
+        <div class="modal-content">
+            <h3 id="modalTitle">新增账户</h3>
+            <input type="hidden" id="editRowIndex">
+            <div class="form-group"><label>卡商:</label><input type="text" id="formKashang"></div>
+            <div class="form-group"><label>卡号:</label><input type="text" id="formKahao"></div>
+            <div class="form-group"><label>跑量:</label><input type="text" id="formPaoliang"></div>
+            <div class="form-group"><label>密码:</label><input type="text" id="formMima"></div>
+            <div class="form-group"><label>备注:</label><input type="text" id="formBeizhu"></div>
+            <div class="form-group"><label>状态:</label><input type="text" id="formZhuangtai"></div>
+            <div class="panel-actions">
+                <button class="btn btn-gray" onclick="closeModal('addSingleModal')">关闭</button>
+                <button class="btn" onclick="saveSingleAccount()">保存</button>
             </div>
         </div>
     </div>
-</div>
 
-<!-- Gọi thư viện và file xử lý logic Javascript -->
-<script src="https://unpkg.com"></script>
-<script src="https://jsdelivr.net"></script>
-<script src="app.js"></script>
+    <!-- Popup 2: Thêm tài khoản hàng loạt -->
+    <div class="modal-overlay" id="addBatchModal">
+        <div class="modal-content">
+            <h3>批量新增账户</h3>
+            <div class="form-group"><label>卡商 (Cố định cho danh sách này):</label><input type="text" id="batchKashang" value="H001"></div>
+            <div class="form-group"><label>卡号列表 (Mỗi hàng 1 số):</label><textarea id="batchKahaos" style="height:80px;"></textarea></div>
+            <div class="form-group"><label>跑量 (Cố định):</label><input type="text" id="batchPaoliang" value="5w"></div>
+            <div class="form-group"><label>密码列表 (Mỗi hàng 1 mật khẩu tương ứng):</label><textarea id="batchMimas" style="height:80px;"></textarea></div>
+            <div class="panel-actions">
+                <button class="btn btn-gray" onclick="closeModal('addBatchModal')">关闭</button>
+                <button class="btn" onclick="saveBatchAccounts()">확인 (확정)</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Popup 3: Sửa ghi chú hàng loạt -->
+    <div class="modal-overlay" id="batchNoteModal">
+        <div class="modal-content">
+            <h3>批量备注</h3>
+            <div class="form-group">
+                <label>输入 nội dung ghi chú mới cho các mục đã chọn:</label>
+                <input type="text" id="batchNoteInput" placeholder="例如: GR084">
+            </div>
+            <div class="panel-actions">
+                <button class="btn btn-gray" onclick="closeModal('batchNoteModal')">关闭</button>
+                <button class="btn btn-green" onclick="executeBatchNote()">更新</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Liên kết tới file JavaScript xử lý logic -->
+    <script src="app.js"></script>
 </body>
 </html>
