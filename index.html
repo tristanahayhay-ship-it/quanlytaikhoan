@@ -4,102 +4,107 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Hệ thống Quản lý Vận hành & Rủi ro Thẻ</title>
+    <!-- Đổi sang link thư viện Tailwind ổn định để không bị vỡ giao diện -->
     <script src="https://jsdelivr.net"></script>
+    <link href="https://jsdelivr.net" rel="stylesheet">
     <link rel="stylesheet" href="https://cloudflare.com">
 </head>
-<body class="bg-gray-900 text-gray-100 min-h-screen font-sans">
-    <!-- Cấu hình Git -->
-    <div class="bg-gray-800 p-4 border-b border-gray-700 shadow-md">
+<body class="bg-gray-950 text-gray-100 min-h-screen font-sans bg-opacity-95" style="background-color: #0b0f19;">
+
+    <!-- Thanh cấu hình kết nối GitHub -->
+    <div class="bg-gray-900 p-4 border-b border-gray-800 shadow-md">
         <div class="max-w-7xl mx-auto flex flex-wrap gap-4 items-center justify-between">
             <div class="flex items-center gap-2">
-                <i class="fa-solid fa-wallet text-emerald-400 text-xl"></i>
-                <h1 class="text-xl font-bold text-white">CARD RISK MANAGER</h1>
+                <i class="fa-solid fa-wallet text-green-400 text-xl"></i>
+                <h1 class="text-xl font-bold text-white tracking-wide">CARD RISK MANAGER</h1>
             </div>
             <div class="flex flex-wrap gap-2 items-center w-full md:w-auto">
-                <input type="password" id="ghToken" placeholder="GitHub Token (PAT)" class="bg-gray-700 text-sm px-3 py-1.5 rounded border border-gray-600 focus:outline-none focus:border-emerald-500 text-white w-44">
-                <input type="text" id="ghRepo" placeholder="username/repo_name" class="bg-gray-700 text-sm px-3 py-1.5 rounded border border-gray-600 focus:outline-none focus:border-emerald-500 text-white w-40">
-                <input type="password" id="masterPass" placeholder="Mật mã mã hóa" class="bg-gray-700 text-sm px-3 py-1.5 rounded border border-gray-600 focus:outline-none focus:border-emerald-500 text-white w-44">
-                <button onclick="saveConfig()" class="bg-emerald-600 hover:bg-emerald-500 text-white font-medium text-sm px-4 py-1.5 rounded transition cursor-pointer">Kết nối & Tải dữ liệu</button>
+                <input type="password" id="ghToken" placeholder="GitHub Token (PAT)" class="bg-gray-800 text-sm px-3 py-1.5 rounded border border-gray-700 focus:outline-none focus:border-green-500 text-white w-44">
+                <input type="text" id="ghRepo" placeholder="username/repo_name" class="bg-gray-800 text-sm px-3 py-1.5 rounded border border-gray-700 focus:outline-none focus:border-green-500 text-white w-40">
+                <input type="password" id="masterPass" placeholder="Mật mã mã hóa" class="bg-gray-800 text-sm px-3 py-1.5 rounded border border-gray-700 focus:outline-none focus:border-green-500 text-white w-44">
+                <button onclick="saveConfig()" class="bg-green-600 hover:bg-green-500 text-white font-medium text-sm px-4 py-1.5 rounded transition shadow cursor-pointer">Kết nối & Tải dữ liệu</button>
             </div>
         </div>
     </div>
-    <!-- Menu Tab -->
+
+    <!-- Nội dung chính chia theo Tab -->
     <div class="max-w-7xl mx-auto p-4 md:p-6 space-y-6">
-        <div class="bg-gray-800 p-2 rounded-xl border border-gray-700 flex flex-wrap gap-2 shadow-md">
-            <button onclick="switchTab('active')" id="tabActive" class="px-4 py-2 rounded-lg text-sm font-semibold bg-emerald-600 text-white cursor-pointer"><i class="fa-solid fa-circle-check mr-1"></i> Thẻ Hoạt Động</button>
-            <button onclick="switchTab('risk')" id="tabRisk" class="px-4 py-2 rounded-lg text-sm font-semibold bg-gray-700 text-gray-300 hover:bg-gray-600 cursor-pointer"><i class="fa-solid fa-triangle-exclamation mr-1"></i> Rủi Ro / Khóa Thẻ</button>
-            <button onclick="switchTab('loss')" id="tabLoss" class="px-4 py-2 rounded-lg text-sm font-semibold bg-gray-700 text-gray-300 hover:bg-gray-600 cursor-pointer"><i class="fa-solid fa-file-invoice-dollar mr-1"></i> Trừ Tiền Mất Oan</button>
-            <button onclick="switchTab('trash')" id="tabTrash" class="px-4 py-2 rounded-lg text-sm font-semibold bg-gray-700 text-gray-300 hover:bg-gray-600 cursor-pointer"><i class="fa-solid fa-trash-can mr-1"></i> Lịch Sử Đã Xóa</button>
+        <div class="bg-gray-900 p-2 rounded-xl border border-gray-800 flex flex-wrap gap-2 shadow-md">
+            <button onclick="switchTab('active')" id="tabActive" class="px-4 py-2 rounded-lg text-sm font-semibold bg-green-600 text-white cursor-pointer"><i class="fa-solid fa-circle-check mr-1"></i> Thẻ Hoạt Động</button>
+            <button onclick="switchTab('risk')" id="tabRisk" class="px-4 py-2 rounded-lg text-sm font-semibold bg-gray-800 text-gray-300 hover:bg-gray-700 cursor-pointer"><i class="fa-solid fa-triangle-exclamation mr-1"></i> Rủi Ro / Khóa Thẻ</button>
+            <button onclick="switchTab('loss')" id="tabLoss" class="px-4 py-2 rounded-lg text-sm font-semibold bg-gray-800 text-gray-300 hover:bg-gray-700 cursor-pointer"><i class="fa-solid fa-file-invoice-dollar mr-1"></i> Trừ Tiền Mất Oan</button>
+            <button onclick="switchTab('trash')" id="tabTrash" class="px-4 py-2 rounded-lg text-sm font-semibold bg-gray-800 text-gray-300 hover:bg-gray-700 cursor-pointer"><i class="fa-solid fa-trash-can mr-1"></i> Lịch Sử Đã Xóa</button>
         </div>
+
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
             <div class="space-y-6">
                 <!-- Form Thêm Thẻ -->
-                <div id="formCardBox" class="bg-gray-800 p-5 rounded-xl border border-gray-700 shadow-lg space-y-4">
-                    <h3 class="text-md font-semibold text-emerald-400 border-b border-gray-700 pb-2"><i class="fa-solid fa-plus-circle mr-2"></i>Thêm Thẻ Mới</h3>
+                <div id="formCardBox" class="bg-gray-900 p-5 rounded-xl border border-gray-800 shadow-lg space-y-4">
+                    <h3 class="text-md font-semibold text-green-400 border-b border-gray-800 pb-2"><i class="fa-solid fa-plus-circle mr-2"></i>Thêm Thẻ Mới</h3>
                     <form id="cardForm" onsubmit="addCard(event)" class="space-y-3 text-sm">
                         <div>
                             <label class="block text-gray-400 mb-1">Nền tảng</label>
-                            <select id="platform" class="w-full bg-gray-700 border border-gray-600 rounded p-2 text-white"><option value="hrpay">HRPay</option><option value="bdpay">BDPay</option></select>
+                            <select id="platform" class="w-full bg-gray-800 border border-gray-700 rounded p-2 text-white"><option value="hrpay">HRPay</option><option value="bdpay">BDPay</option></select>
                         </div>
                         <div>
                             <label class="block text-gray-400 mb-1">Nhóm thẻ</label>
-                            <input type="text" id="group" placeholder="Ví dụ: gr001" required class="w-full bg-gray-700 border border-gray-600 rounded p-2 text-white">
+                            <input type="text" id="group" placeholder="Ví dụ: gr001" required class="w-full bg-gray-800 border border-gray-700 rounded p-2 text-white">
                         </div>
                         <div>
                             <label class="block text-gray-400 mb-1">Số thẻ / Số ví</label>
-                            <input type="text" id="cardNumber" placeholder="Nhập số điện thoại/số thẻ" required class="w-full bg-gray-700 border border-gray-600 rounded p-2 text-white">
+                            <input type="text" id="cardNumber" placeholder="Nhập số điện thoại/số thẻ" required class="w-full bg-gray-800 border border-gray-700 rounded p-2 text-white">
                         </div>
                         <div>
                             <label class="block text-gray-400 mb-1">Loại thẻ</label>
-                            <select id="cardType" class="w-full bg-gray-700 border border-gray-600 rounded p-2 text-white">
+                            <select id="cardType" class="w-full bg-gray-800 border border-gray-700 rounded p-2 text-white">
                                 <option value="bkash-agent">bKash Đại lý (Agent)</option><option value="nagad-agent">Nagad Đại lý (Agent)</option>
                                 <option value="bkash-personal">bKash Cá nhân (Personal)</option><option value="nagad-personal">Nagad Cá nhân (Personal)</option>
                             </select>
                         </div>
                         <div class="grid grid-cols-2 gap-2">
-                            <div><label class="block text-gray-400 mb-1">Hạn ngạch (Quota)</label><input type="text" id="quota" placeholder="Ví dụ: 5w" required class="w-full bg-gray-700 border border-gray-600 rounded p-2 text-white"></div>
-                            <div><label class="block text-gray-400 mb-1">Mật khẩu (PIN)</label><input type="text" id="password" placeholder="Mật khẩu" required class="w-full bg-gray-700 border border-gray-600 rounded p-2 text-white"></div>
+                            <div><label class="block text-gray-400 mb-1">Hạn ngạch (Quota)</label><input type="text" id="quota" placeholder="Ví dụ: 5w" required class="w-full bg-gray-800 border border-gray-700 rounded p-2 text-white"></div>
+                            <div><label class="block text-gray-400 mb-1">Mật khẩu (PIN)</label><input type="text" id="password" placeholder="Mật khẩu" required class="w-full bg-gray-800 border border-gray-700 rounded p-2 text-white"></div>
                         </div>
-                        <div><label class="block text-gray-400 mb-1">Ghi chú</label><textarea id="note" rows="2" class="w-full bg-gray-700 border border-gray-600 rounded p-2 text-white"></textarea></div>
-                        <button type="submit" class="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-2 rounded transition cursor-pointer">Thêm Mới & Lưu Git</button>
+                        <div><label class="block text-gray-400 mb-1">Ghi chú</label><textarea id="note" rows="2" class="w-full bg-gray-800 border border-gray-700 rounded p-2 text-white"></textarea></div>
+                        <button type="submit" class="w-full bg-green-600 hover:bg-green-500 text-white font-bold py-2 rounded transition cursor-pointer">Thêm Mới & Lưu Git</button>
                     </form>
                 </div>
                 <!-- Form Phạt Tiền -->
-                <div id="formLossBox" class="bg-gray-800 p-5 rounded-xl border border-gray-700 shadow-lg space-y-4 hidden">
-                    <h3 class="text-md font-semibold text-orange-400 border-b border-gray-700 pb-2"><i class="fa-solid fa-money-bill-transfer mr-2"></i>Trừ Tiền Mất Oan</h3>
+                <div id="formLossBox" class="bg-gray-900 p-5 rounded-xl border border-gray-800 shadow-lg space-y-4 hidden">
+                    <h3 class="text-md font-semibold text-orange-400 border-b border-gray-800 pb-2"><i class="fa-solid fa-money-bill-transfer mr-2"></i>Trừ Tiền Mất Oan</h3>
                     <form id="lossForm" onsubmit="createLossLog(event)" class="space-y-3 text-sm">
                         <div>
                             <label class="block text-gray-400 mb-1">Nhóm Thẻ</label>
-                            <input type="text" id="lossGroup" placeholder="Ví dụ: gr001" required class="w-full bg-gray-700 border border-gray-600 rounded p-2 text-white">
+                            <input type="text" id="lossGroup" placeholder="Ví dụ: gr001" required class="w-full bg-gray-800 border border-gray-700 rounded p-2 text-white">
                         </div>
                         <div>
                             <label class="block text-gray-400 mb-1">Số tiền tổn thất</label>
-                            <input type="number" id="lossAmount" required class="w-full bg-gray-700 border border-gray-600 rounded p-2 text-white">
+                            <input type="number" id="lossAmount" required class="w-full bg-gray-800 border border-gray-700 rounded p-2 text-white">
                         </div>
                         <div>
                             <label class="block text-gray-400 mb-1">Lý do</label>
-                            <textarea id="lossReason" rows="3" required class="w-full bg-gray-700 border border-gray-600 rounded p-2 text-white"></textarea>
+                            <textarea id="lossReason" rows="3" required class="w-full bg-gray-800 border border-gray-700 rounded p-2 text-white"></textarea>
                         </div>
                         <button type="submit" class="w-full bg-orange-600 hover:bg-orange-500 text-white font-bold py-2 rounded transition cursor-pointer">Xác Nhận Trừ Tiền</button>
                     </form>
                 </div>
                 <!-- Hạn ngạch -->
-                <div class="bg-gray-800 p-4 rounded-xl border border-gray-700 shadow-md">
+                <div class="bg-gray-900 p-4 rounded-xl border border-gray-800 shadow-md">
                     <h4 class="text-sm font-bold text-gray-300 mb-2"><i class="fa-solid fa-chart-pie text-gray-400 mr-2"></i>Hạn Ngạch Kế Toán</h4>
-                    <div id="groupStats" class="divide-y divide-gray-700 text-xs"></div>
+                    <div id="groupStats" class="divide-y divide-gray-800 text-xs"></div>
                 </div>
             </div>
             <!-- Bảng Dữ Liệu -->
             <div class="lg:col-span-2 space-y-4">
-                <div class="bg-gray-800 p-4 rounded-xl border border-gray-700 flex items-center justify-between shadow-md">
+                <div class="bg-gray-900 p-4 rounded-xl border border-gray-800 flex items-center justify-between shadow-md">
                     <h3 id="tableTitle" class="text-md font-bold text-white">DANH SÁCH THẺ ĐANG HOẠT ĐỘNG</h3>
-                    <input type="text" id="searchBox" oninput="renderData()" placeholder="Tìm kiếm nhanh..." class="bg-gray-700 text-sm px-3 py-1.5 rounded border border-gray-600 focus:outline-none focus:border-emerald-500 text-white w-48 sm:w-64">
+                    <input type="text" id="searchBox" oninput="renderData()" placeholder="Tìm kiếm nhanh..." class="bg-gray-800 text-sm px-3 py-1.5 rounded border border-gray-700 focus:outline-none focus:border-green-500 text-white w-48 sm:w-64">
                 </div>
-                <div class="bg-gray-800 rounded-xl border border-gray-700 shadow-lg overflow-hidden min-h-[450px] flex flex-col justify-between">
+                <div class="bg-gray-900 rounded-xl border border-gray-800 shadow-lg overflow-hidden min-h-[450px] flex flex-col justify-between">
                     <div class="overflow-x-auto">
                         <table class="w-full text-left text-sm">
-                            <thead id="tableHead" class="bg-gray-700 text-gray-300 uppercase text-xs tracking-wider"></thead>
-                            <tbody id="dataTable" class="divide-y divide-gray-700"></tbody>
+                            <thead id="tableHead" class="bg-gray-800 text-gray-300 uppercase text-xs tracking-wider"></thead>
+                            <tbody id="dataTable" class="divide-y divide-gray-800"></tbody>
                         </table>
                     </div>
                     <div id="emptyState" class="text-center py-16 text-gray-500 hidden">
