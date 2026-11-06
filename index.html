@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Phân Hệ Điều Hành Quản Lý Thẻ Tập Trung</title>
+  <!-- Nhúng tệp giao diện và mã xử lý tách rời -->
+  <link rel="stylesheet" href="style.css">
+  <script src="script.js" defer></script>
+</head>
+<body>
+
+  <!-- Hệ thống Tab điều hướng đồng bộ trang tính -->
+  <div class="tab-bar">
+    <div class="tab-item active" onclick="switchTab('代理钱包')">📊 代理钱包 (Ví đại lý)</div>
+    <div class="tab-item" onclick="switchTab('个人钱包')">👤 个人钱包 (Ví cá nhân)</div>
+    <div class="tab-item" onclick="switchTab('上架+下架')">🔄 上架+下架 (Lên/Xuống Kệ)</div>
+    <div class="tab-item" onclick="switchTab('风控卡')">🛡️ 风控卡 (Thẻ kiểm soát rủi ro)</div>
+  </div>
+
+  <div class="system-workspace">
+    <!-- BÀN ĐIỀU HÀNH TÁC VỤ (SIDEBAR TRÁI) -->
+    <div class="control-sidebar">
+      <h3 class="sidebar-title">🕹️ BÀN ĐIỀU HÀNH HỆ THỐNG</h3>
+      
+      <label>Bước 1: Chọn Phân Vùng Chỉ Định:</label>
+      <select id="selectVungHeThong" onchange="capNhatTieuDeFormNhap()">
+        <option value="1">HRPAY-bkash (Vùng 1)</option>
+        <option value="2">HRPAY-nagad (Vùng 2)</option>
+        <option value="3">BDPAY-bkash (Vùng 3)</option>
+        <option value="4">BDPAY-nagad (Vùng 4)</option>
+      </select>
+
+      <!-- Tính năng đồng bộ CuaSoTimKiem.html cũ -->
+      <div class="module-box">
+        <div class="module-title">🔍 Trình Quét Tìm Kiếm Hàng Loạt</div>
+        <label>Dán danh sách số thẻ (Mỗi số 1 dòng):</label>
+        <textarea id="areaSearchBatch" placeholder="Ví dụ:&#10;1125486248&#10;1609915490"></textarea>
+        <button class="btn-action" id="btnExecSearch" onclick="execBatchSearchFilter()">⚡ Khởi động quét lọc mã</button>
+        <button class="btn-reset" onclick="resetMatrixRowsFilter()">🔓 Hủy bộ lọc hồi phục bảng</button>
+      </div>
+
+      <!-- Tính năng đồng bộ CuaSoNhapLieu.html cũ -->
+      <div class="module-box">
+        <div class="module-title">➕ Trình Nhập Liệu Ma Trận Hàng Loạt</div>
+        <label id="lblTargetInput">Khối dữ liệu Excel đưa vào Vùng 1:</label>
+        <textarea id="areaRawExcelData" placeholder="卡商[Tab]卡号[Tab]跑量[Tab]密码[Tab]备注[Tab]状态"></textarea>
+        <button class="btn-action" style="background-color: #00c853;" id="btnSubmitForm" onclick="submitBulkDataToSheets()">🚀 Xác nhận hoàn thành đẩy lên biểu</button>
+      </div>
+      
+      <p class="note-guide">💡 Mẹo: Có thể bôi vùng xanh, dùng phím mũi tên điều hướng, Ctrl+V để dán dữ liệu hoặc kéo chấm vuông góc dưới để fill hàng loạt cực nhanh!</p>
+    </div>
+
+    <!-- PHÂN HỆ HIỂN THỊ MA TRẬN GRID (MÀN HÌNH CHÍNH PHẢI) -->
+    <div class="main-matrix-board">
+      <div class="board-header">
+        <h4 id="txtCurrentTabHeader">📊 Ma Trận Phân Hệ Ví Đại Lý (Đồng bộ Realtime dữ liệu trung tâm)</h4>
+        <button onclick="pullDataFromSheetsServer()" class="btn-refresh">🔄 Làm Mới Trực Tiếp</button>
+      </div>
+      
+      <div id="screenLoading" class="loading-screen">⏳ Hệ thống đang kết nối ngầm kéo cơ sở dữ liệu từ Google Sheets Server...</div>
+      
+      <div class="grid-container" id="gridContainer" style="display:none;">
+        <table id="matrixExcelTable">
+          <thead>
+            <tr>
+              <th colspan="7" style="background-color:#fbc02d;">HRPAY-代理钱包 (Vùng 1)</th><th class="gap-column"></th>
+              <th colspan="7" style="background-color:#00c853; color:white;">HRPAY-代理钱包 (Vùng 2)</th><th class="gap-column"></th>
+              <th colspan="7" style="background-color:#ff9100; color:white;">BDPAY-代理钱包 (Vùng 3)</th><th class="gap-column"></th>
+              <th colspan="7" style="background-color:#ffff00;">BDPAY-代理钱包 (Vùng 4)</th>
+            </tr>
+            <tr>
+              <th class="header-zone1">卡商</th><th class="header-zone2">卡号</th><th class="header-zone2">HRPAY-Bk</th><th class="header-zone3">跑量</th><th class="header-zone2">密码</th><th class="header-zone2">备注</th><th class="header-zone4">状态</th><th class="gap-column"></th>
+              <th class="header-zone1">卡商</th><th class="header-zone2">卡号</th><th class="header-zone2">HRPAY-NA</th><th class="header-zone3">跑量</th><th class="header-zone2">密码</th><th class="header-zone2">备注</th><th class="header-zone4">状态</th><th class="gap-column"></th>
+              <th class="header-zone1">卡商</th><th class="header-zone2">卡号</th><th class="header-zone2">BDPAY-BK</th><th class="header-zone3">跑量</th><th class="header-zone2">密码</th><th class="header-zone2">备注</th><th class="header-zone4">状态</th><th class="gap-column"></th>
+              <th class="header-zone1">卡商</th><th class="header-zone2">卡号</th><th class="header-zone2">BDPAY-NA</th><th class="header-zone3">跑量</th><th class="header-zone2">密码</th><th class="header-zone2">备注</th><th class="header-zone4">状态</th>
+            </tr>
+          </thead>
+          <tbody id="matrixTableBody"></tbody>
+        </table>
+        <input type="text" id="cellInlineEditor" class="cell-editor">
+      </div>
+    </div>
+  </div>
+
+</body>
+</html>
