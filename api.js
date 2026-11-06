@@ -1,7 +1,7 @@
 // ========================================================================
 // ⚠️ LƯU Ý: THAY ĐƯỜNG LINK WEB APP API CỦA BẠN VÀO DẤU NGOẶC KÉP DƯỚI ĐÂY
 // ========================================================================
-var SYSTEM_API_URL = "https://google.com"; 
+var SYSTEM_API_URL = "https://script.google.com/macros/s/AKfycbxj0PCNlNQWYGnYXmwVD_aCqt1K3u0uO22uy4Sie01Ddf2lkF4hUYPHaKkWnfzR4QEWjg/exec"; 
 
 var cacheRawServerRows = [];
 
