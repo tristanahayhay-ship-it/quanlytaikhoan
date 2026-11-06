@@ -1,0 +1,274 @@
+let db = { active_cards: [], risk_cards: [], loss_logs: [], trash_cards: [] };
+let state = { currentTab: 'active', sha: null };
+
+function getNow() {
+    const d = new Date();
+    return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')} ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}:${String(d.getSeconds()).padStart(2,'0')}`;
+}
+
+window.onload = function() {
+    if(localStorage.getItem('g_tk')) document.getElementById('ghToken').value = localStorage.getItem('g_tk');
+    if(localStorage.getItem('g_rp')) document.getElementById('ghRepo').value = localStorage.getItem('g_rp');
+    if(localStorage.getItem('m_ps')) document.getElementById('masterPass').value = localStorage.getItem('m_ps');
+    if(localStorage.getItem('g_tk') && localStorage.getItem('g_rp')) fetchData();
+}
+
+function saveConfig() {
+    localStorage.setItem('g_tk', document.getElementById('ghToken').value.trim());
+    localStorage.setItem('g_rp', document.getElementById('ghRepo').value.trim());
+    localStorage.setItem('m_ps', document.getElementById('masterPass').value.trim());
+    fetchData();
+}
+
+function xorEncryptDecrypt(str, key) {
+    if(!key) return str; 
+    let output = '';
+    for (let i = 0; i < str.length; i++) {
+        output += String.fromCharCode(str.charCodeAt(i) ^ key.charCodeAt(i % key.length));
+    }
+    return output;
+}
+
+async function fetchData() {
+    const tk = localStorage.getItem('g_tk'), rp = localStorage.getItem('g_rp'), ps = localStorage.getItem('m_ps');
+    if(!tk || !rp) return;
+    try {
+        const res = await fetch(`https://github.com{rp}/contents/database.json`, { headers: { 'Authorization': `token ${tk}` } });
+        if(res.ok) {
+            const resData = await res.json(); state.sha = resData.sha;
+            let rawContent = decodeURIComponent(escape(atob(resData.content)));
+            if (ps && rawContent && rawContent !== "{}") {
+                try { 
+                    let decrypted = xorEncryptDecrypt(rawContent, ps);
+                    db = JSON.parse(decrypted);
+                } catch(e) { 
+                    alert("Mật mã sai hoặc dữ liệu thô. Đang tải mặc định.");
+                    db = JSON.parse(rawContent);
+                }
+            } else if (rawContent && rawContent !== "{}") { db = JSON.parse(rawContent); }
+        }
+        renderData();
+    } catch (error) { console.error("Lỗi kết nối dữ liệu:", error); }
+}
+async function syncData() {
+    const tk = localStorage.getItem('g_tk'), rp = localStorage.getItem('g_rp'), ps = localStorage.getItem('m_ps');
+    if(!tk || !rp) return;
+    let stringData = JSON.stringify(db, null, 2);
+    if(ps) stringData = xorEncryptDecrypt(stringData, ps);
+    const base64Data = btoa(unescape(encodeURIComponent(stringData)));
+    
+    const putRes = await fetch(`https://github.com{rp}/contents/database.json`, {
+        method: 'PUT',
+        headers: { 'Authorization': `token ${tk}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ message: `Hệ thống cập nhật tự động: ${getNow()}`, content: base64Data, sha: state.sha })
+    });
+    if(putRes.ok) { const json = await putRes.json(); state.sha = json.content.sha; }
+    renderData();
+}
+
+function switchTab(tab) {
+    state.currentTab = tab;
+    document.getElementById('formCardBox').classList.add('hidden');
+    document.getElementById('formLossBox').classList.add('hidden');
+    ['tabActive','tabRisk','tabLoss','tabTrash'].forEach(t => document.getElementById(t).className = "px-4 py-2 rounded-lg text-sm font-semibold bg-gray-700 text-gray-300 hover:bg-gray-600 cursor-pointer");
+    
+    if(tab === 'active') {
+        document.getElementById('tabActive').className = "px-4 py-2 rounded-lg text-sm font-semibold bg-emerald-600 text-white cursor-pointer";
+        document.getElementById('formCardBox').classList.remove('hidden');
+        document.getElementById('tableTitle').innerText = "DANH SÁCH THẺ ĐANG HOẠT ĐỘNG";
+    } else if(tab === 'risk') {
+        document.getElementById('tabRisk').className = "px-4 py-2 rounded-lg text-sm font-semibold bg-red-600 text-white cursor-pointer";
+        document.getElementById('tableTitle').innerText = "DANH SÁCH KIỂM SOÁT RỦI RO / KHÓA THẺ";
+    } else if(tab === 'loss') {
+        document.getElementById('tabLoss').className = "px-4 py-2 rounded-lg text-sm font-semibold bg-orange-600 text-white cursor-pointer";
+        document.getElementById('formLossBox').classList.remove('hidden');
+        document.getElementById('tableTitle').innerText = "LỊCH SỬ KHẤU TRỪ TIỀN MẤT OAN THEO NHÓM";
+    } else if(tab === 'trash') {
+        document.getElementById('tabTrash').className = "px-4 py-2 rounded-lg text-sm font-semibold bg-gray-500 text-white cursor-pointer";
+        document.getElementById('tableTitle').innerText = "KHO LƯU TRỮ THẺ ĐÃ XÓA KHỎI HỆ THỐNG";
+    }
+    renderData();
+}
+
+function addCard(e) {
+    e.preventDefault();
+    db.active_cards.unshift({
+        id: 'c-' + Date.now(),
+        platform: document.getElementById('platform').value,
+        group: document.getElementById('group').value.trim(),
+        card_number: document.getElementById('cardNumber').value.trim(),
+        card_type: document.getElementById('cardType').value,
+        quota: document.getElementById('quota').value.trim(),
+        password: document.getElementById('password').value.trim(),
+        note: document.getElementById('note').value.trim(),
+        created_at: getNow()
+    });
+    document.getElementById('cardForm').reset();
+    syncData();
+}
+
+function triggerRisk(id) {
+    const idx = db.active_cards.findIndex(c => c.id === id);
+    if(idx === -1) return;
+    const reason = prompt("Nhập lý do dính rủi ro:");
+    if(reason === null) return;
+    const balanceKẹt = prompt("Số dư/Hạn ngạch bị kẹt lại:", "0");
+    
+    let card = db.active_cards.splice(idx, 1)[0];
+    card.risk_at = getNow();
+    card.risk_reason = reason || "Không rõ lý do";
+    card.risk_balance = balanceKẹt || "0";
+    db.risk_cards.unshift(card);
+    syncData();
+}
+
+function deleteCard(id, fromSource) {
+    if(!confirm("Bạn có chắc chắn muốn xóa thẻ này?")) return;
+    let srcList = fromSource === 'active' ? db.active_cards : db.risk_cards;
+    const idx = srcList.findIndex(c => c.id === id);
+    if(idx === -1) return;
+    
+    let card = srcList.splice(idx, 1)[0];
+    card.deleted_at = getNow();
+    db.trash_cards.unshift(card);
+    syncData();
+}
+
+function recoverRisk(id) {
+    const idx = db.risk_cards.findIndex(c => c.id === id);
+    if(idx === -1) return;
+    let card = db.risk_cards.splice(idx, 1)[0];
+    card.created_at = getNow();
+    delete card.risk_at; delete card.risk_reason; delete card.risk_balance;
+    db.active_cards.unshift(card);
+    syncData();
+}
+
+function createLossLog(e) {
+    e.preventDefault();
+    db.loss_logs.unshift({
+        id: 'l-' + Date.now(),
+        group: document.getElementById('lossGroup').value.trim().toLowerCase(),
+        amount: parseFloat(document.getElementById('lossAmount').value) || 0,
+        reason: document.getElementById('lossReason').value.trim(),
+        logged_at: getNow()
+    });
+    document.getElementById('lossForm').reset();
+    syncData();
+}
+
+function copy(txt, btn) {
+    navigator.clipboard.writeText(txt);
+    btn.innerHTML = '<i class="fa-solid fa-check text-emerald-400"></i>';
+    setTimeout(() => { btn.innerHTML = '<i class="fa-regular fa-copy text-xs"></i>'; }, 1000);
+}
+function calculateKetoan() {
+    let statsBox = document.getElementById('groupStats'); statsBox.innerHTML = '';
+    let summary = {};
+    db.active_cards.forEach(c => {
+        let gr = c.group.toLowerCase();
+        if(!summary[gr]) summary[gr] = { initial: 0, loss: 0 };
+        let num = parseFloat(c.quota) || 0;
+        if(c.quota.toLowerCase().endsWith('w')) num = (parseFloat(c.quota) || 0) * 10000; 
+        summary[gr].initial += num;
+    });
+    db.loss_logs.forEach(l => {
+        let gr = l.group.toLowerCase();
+        if(!summary[gr]) summary[gr] = { initial: 0, loss: 0 };
+        summary[gr].loss += l.amount;
+    });
+    if(Object.keys(summary).length === 0) { statsBox.innerHTML = '<p class="text-gray-500 italic py-2">Chưa có số liệu nhóm.</p>'; return; }
+    for(let gr in summary) {
+        let actual = summary[gr].initial - summary[gr].loss;
+        statsBox.innerHTML += `
+            <div class="py-2 flex justify-between items-center">
+                <div>
+                    <span class="font-bold text-gray-200 uppercase">${gr}</span>
+                    <div class="text-[10px] text-gray-500">Ban đầu: ${summary[gr].initial.toLocaleString()} | Mất: <span class="text-rose-400">${summary[gr].loss.toLocaleString()}</span></div>
+                </div>
+                <span class="font-mono font-bold px-2 py-0.5 rounded ${actual < 0 ? 'bg-rose-950 text-rose-300' : 'bg-emerald-950 text-emerald-400'}">${actual.toLocaleString()}</span>
+            </div>`;
+    }
+}
+
+function renderData() {
+    calculateKetoan();
+    const head = document.getElementById('tableHead'), body = document.getElementById('dataTable'), search = document.getElementById('searchBox').value.toLowerCase();
+    body.innerHTML = ''; head.innerHTML = '';
+    let list = [];
+    if(state.currentTab === 'active') list = db.active_cards;
+    else if(state.currentTab === 'risk') list = db.risk_cards;
+    else if(state.currentTab === 'loss') list = db.loss_logs;
+    else if(state.currentTab === 'trash') list = db.trash_cards;
+
+    let filtered = list.filter(item => {
+        if(state.currentTab === 'loss') return item.group.toLowerCase().includes(search) || item.reason.toLowerCase().includes(search);
+        return item.card_number.toLowerCase().includes(search) || item.group.toLowerCase().includes(search) || (item.note && item.note.toLowerCase().includes(search));
+    });
+    if(filtered.length === 0) { document.getElementById('emptyState').classList.remove('hidden'); return; }
+    document.getElementById('emptyState').classList.add('hidden');
+
+    if(state.currentTab === 'loss') {
+        head.innerHTML = `<tr><th class="p-3">Nhóm</th><th class="p-3">Lý do mất tiền oan</th><th class="p-3">Số tiền trừ</th><th class="p-3">Thời gian</th></tr>`;
+        filtered.forEach(l => {
+            body.innerHTML += `
+                <tr class="hover:bg-gray-750 transition text-xs">
+                    <td class="p-3 font-bold text-orange-400 font-mono uppercase">${l.group}</td>
+                    <td class="p-3 text-gray-300 max-w-xs break-words">${l.reason}</td>
+                    <td class="p-3 font-mono font-bold text-rose-400">-${l.amount.toLocaleString()}</td>
+                    <td class="p-3 text-gray-500 font-mono">${l.logged_at}</td>
+                </tr>`;
+        });
+        return;
+    }
+
+    head.innerHTML = `<tr><th class="p-3">Nền tảng / Nhóm</th><th class="p-3">Thông tin thẻ</th><th class="p-3">Mật khẩu</th><th class="p-3">Nhật ký thời gian</th><th class="p-3 text-center">Hành động</th></tr>`;
+    filtered.forEach(c => {
+        let timeLogHtml = '', actionHtml = '';
+        if(state.currentTab === 'active') {
+            timeLogHtml = `<div class="text-emerald-400"><i class="fa-solid fa-clock mr-1"></i>Lên thẻ: ${c.created_at}</div>`;
+            actionHtml = `
+                <div class="flex gap-2 justify-center">
+                    <button onclick="triggerRisk('${c.id}')" class="bg-amber-950/60 border border-amber-800/50 hover:bg-amber-800 text-amber-300 px-2 py-1 rounded text-xs transition cursor-pointer"><i class="fa-solid fa-triangle-exclamation"></i> Báo Lỗi</button>
+                    <button onclick="deleteCard('${c.id}', 'active')" class="bg-gray-700 hover:bg-rose-900 text-gray-300 hover:text-white px-2 py-1 rounded text-xs transition cursor-pointer"><i class="fa-solid fa-trash"></i></button>
+                </div>`;
+        } else if(state.currentTab === 'risk') {
+            timeLogHtml = `
+                <div class="text-red-400"><i class="fa-solid fa-triangle-exclamation mr-1"></i>Sự cố: ${c.risk_at}</div>
+                <div class="text-gray-400 text-[10px] mt-0.5">Kẹt ví: <span class="font-bold underline text-amber-400">${c.risk_balance}</span></div>
+                <div class="text-orange-300 text-[10px] italic max-w-[180px] truncate">Lý do: ${c.risk_reason}</div>`;
+            actionHtml = `
+                <div class="flex gap-2 justify-center">
+                    <button onclick="recoverRisk('${c.id}')" class="bg-emerald-950 border border-emerald-800 text-emerald-400 hover:bg-emerald-800 hover:text-white px-2 py-1 rounded text-xs transition cursor-pointer"><i class="fa-solid fa-rotate-left"></i> Khôi Phục</button>
+                    <button onclick="deleteCard('${c.id}', 'risk')" class="bg-gray-700 hover:bg-rose-900 text-gray-300 hover:text-white px-2 py-1 rounded text-xs transition cursor-pointer"><i class="fa-solid fa-trash"></i> vĩnh viễn</button>
+                </div>`;
+        } else if(state.currentTab === 'trash') {
+            timeLogHtml = `<div class="text-rose-400"><i class="fa-solid fa-trash mr-1"></i>Đã xóa: ${c.deleted_at}</div>`;
+            actionHtml = `<span class="text-xs text-gray-500 bg-gray-900 px-2 py-1 rounded border border-gray-700">Lưu trữ cứng</span>`;
+        }
+
+        body.innerHTML += `
+            <tr class="hover:bg-gray-750 transition text-xs">
+                <td class="p-3">
+                    <span class="px-1.5 py-0.5 text-[10px] font-bold rounded uppercase ${c.platform === 'hrpay' ? 'bg-blue-950 text-blue-300 border border-blue-800' : 'bg-orange-950 text-orange-300 border border-orange-800'}">${c.platform}</span>
+                    <div class="font-mono text-gray-400 mt-1 font-bold uppercase">${c.group}</div>
+                </td>
+                <td class="p-3">
+                    <div class="font-bold text-white flex items-center gap-1.5">
+                        <span>${c.card_number}</span>
+                        <button onclick="copy('${c.card_number}', this)" class="text-gray-500 hover:text-white cursor-pointer"><i class="fa-regular fa-copy text-xs"></i></button>
+                    </div>
+                    <div class="text-[11px] text-gray-400 mt-0.5">${c.card_type} • Quota: <span class="font-bold text-emerald-400">${c.quota}</span></div>
+                    ${c.note ? `<div class="text-[10px] text-gray-400 italic bg-gray-900/40 p-1 rounded mt-1 border border-gray-700/50 max-w-[200px] truncate">${c.note}</div>` : ''}
+                </td>
+                <td class="p-3">
+                    <div class="flex items-center gap-1.5 bg-gray-900 px-2 py-1 rounded border border-gray-700 w-fit font-mono font-bold text-gray-300">
+                        <span>${c.password}</span>
+                        <button onclick="copy('${c.password}', this)" class="text-gray-500 hover:text-white cursor-pointer"><i class="fa-regular fa-copy text-xs"></i></button>
+                    </div>
+                </td>
+                <td class="p-3 font-mono">${timeLogHtml}</td>
+                <td class="p-3 text-center">${actionHtml}</td>
+            </tr>`;
+    });
+}
